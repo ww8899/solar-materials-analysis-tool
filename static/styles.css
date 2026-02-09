@@ -1,0 +1,79 @@
+:root {
+  --bg: #f3f8f4;
+  --card: #ffffff;
+  --text: #163029;
+  --accent: #0c7a5a;
+  --axis: #4f6d63;
+  --grid: #d5e2dc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  color: var(--text);
+  background: linear-gradient(160deg, #edf8f0, var(--bg));
+}
+
+.container {
+  max-width: 1024px;
+  margin: 1.5rem auto;
+  padding: 0 1rem;
+}
+
+.panel {
+  background: var(--card);
+  border: 1px solid #cfded7;
+  border-radius: 10px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+label {
+  display: block;
+  font-size: 0.95rem;
+  margin-bottom: 0.8rem;
+}
+
+input {
+  display: block;
+  margin-top: 0.25rem;
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+
+button {
+  padding: 0.55rem 0.9rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+#chart {
+  width: 100%;
+  height: auto;
+  border: 1px solid #e1ebe6;
+  border-radius: 8px;
+  background: #fcfffd;
+}
+
+.meta {
+  margin-bottom: 0.8rem;
+  font-size: 0.93rem;
+}
+
+.error {
+  color: #8b1e1e;
+  white-space: pre-wrap;
+}

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wavelength Range Analyzer</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>Wavelength Range Analyzer</h1>
+      <p>Upload an Excel/CSV matrix and plot average intensity vs time for a wavelength range.</p>
+
+      <form id="analyzeForm" class="panel">
+        <label>
+          Data File (.xlsx or .csv)
+          <input id="fileInput" name="file" type="file" accept=".xlsx,.csv" required />
+        </label>
+
+        <div class="row">
+          <label>
+            Min Wavelength (nm)
+            <input id="minWl" name="min_wavelength_nm" type="number" step="0.1" value="680" required />
+          </label>
+
+          <label>
+            Max Wavelength (nm)
+            <input id="maxWl" name="max_wavelength_nm" type="number" step="0.1" value="720" required />
+          </label>
+        </div>
+
+        <button type="submit">Analyze and Plot</button>
+      </form>
+
+      <section class="panel">
+        <h2>Result</h2>
+        <div id="meta" class="meta"></div>
+        <svg id="chart" width="900" height="420" viewBox="0 0 900 420" aria-label="intensity plot"></svg>
+      </section>
+
+      <pre id="error" class="error"></pre>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

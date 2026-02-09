@@ -1,0 +1,46 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+
+# Local environment files
+.env
+.env.*
+
+# Runtime logs and temp files
+*.log
+/tmp/
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build / packaging artifacts
+build/
+dist/
+
+# Node (if local frontend tooling is used)
+node_modules/
+
+# Local generated data/artifacts
+*.sqlite3
+*.db
+
+# Ignore local copied binary docs unless intentionally tracked
+*.docx
