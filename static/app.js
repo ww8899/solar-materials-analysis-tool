@@ -2,9 +2,12 @@ const form = document.getElementById("analyzeForm");
 const chart = document.getElementById("chart");
 const errorEl = document.getElementById("error");
 const metaEl = document.getElementById("meta");
+const cursorValuesEl = document.getElementById("cursorValues");
 
 function clearChart() {
   while (chart.firstChild) chart.removeChild(chart.firstChild);
+  chart.onmousemove = null;
+  chart.onmouseleave = null;
 }
 
 function line(x1, y1, x2, y2, color, width = 1) {
@@ -82,6 +85,81 @@ function drawChart(times, intensities) {
   }
 
   chart.appendChild(path(d, "#0c7a5a"));
+
+  const hoverVLine = line(pad.l, pad.t, pad.l, height - pad.b, "#7ca79a", 1);
+  hoverVLine.setAttribute("stroke-dasharray", "4 4");
+  hoverVLine.style.visibility = "hidden";
+  chart.appendChild(hoverVLine);
+
+  const hoverHLine = line(pad.l, height - pad.b, width - pad.r, height - pad.b, "#7ca79a", 1);
+  hoverHLine.setAttribute("stroke-dasharray", "4 4");
+  hoverHLine.style.visibility = "hidden";
+  chart.appendChild(hoverHLine);
+
+  const hoverPoint = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  hoverPoint.setAttribute("r", "4.2");
+  hoverPoint.setAttribute("fill", "#0c7a5a");
+  hoverPoint.setAttribute("stroke", "#ffffff");
+  hoverPoint.setAttribute("stroke-width", "1.2");
+  hoverPoint.style.visibility = "hidden";
+  chart.appendChild(hoverPoint);
+
+  function nearestIndexFromX(svgX) {
+    const clampedX = Math.max(pad.l, Math.min(width - pad.r, svgX));
+    let bestIndex = 0;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (let i = 0; i < times.length; i++) {
+      const px = x(times[i]);
+      const distance = Math.abs(px - clampedX);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = i;
+      }
+    }
+    return bestIndex;
+  }
+
+  chart.onmousemove = (event) => {
+    const rect = chart.getBoundingClientRect();
+    const scaleX = width / rect.width;
+    const scaleY = height / rect.height;
+    const svgX = (event.clientX - rect.left) * scaleX;
+    const svgY = (event.clientY - rect.top) * scaleY;
+
+    if (svgX < pad.l || svgX > width - pad.r || svgY < pad.t || svgY > height - pad.b) {
+      hoverVLine.style.visibility = "hidden";
+      hoverHLine.style.visibility = "hidden";
+      hoverPoint.style.visibility = "hidden";
+      cursorValuesEl.textContent = "Cursor: move over the chart to inspect values.";
+      return;
+    }
+
+    const idx = nearestIndexFromX(svgX);
+    const tVal = times[idx];
+    const iVal = intensities[idx];
+    const px = x(tVal);
+    const py = y(iVal);
+
+    hoverVLine.setAttribute("x1", px);
+    hoverVLine.setAttribute("x2", px);
+    hoverHLine.setAttribute("y1", py);
+    hoverHLine.setAttribute("y2", py);
+    hoverPoint.setAttribute("cx", px);
+    hoverPoint.setAttribute("cy", py);
+
+    hoverVLine.style.visibility = "visible";
+    hoverHLine.style.visibility = "visible";
+    hoverPoint.style.visibility = "visible";
+
+    cursorValuesEl.textContent = `Cursor: x = ${tVal.toFixed(2)} ns, y = ${iVal.toFixed(4)}`;
+  };
+
+  chart.onmouseleave = () => {
+    hoverVLine.style.visibility = "hidden";
+    hoverHLine.style.visibility = "hidden";
+    hoverPoint.style.visibility = "hidden";
+    cursorValuesEl.textContent = "Cursor: move over the chart to inspect values.";
+  };
 }
 
 form.addEventListener("submit", async (event) => {
@@ -119,5 +197,6 @@ form.addEventListener("submit", async (event) => {
   } catch (err) {
     errorEl.textContent = String(err);
     clearChart();
+    cursorValuesEl.textContent = "Cursor: move over the chart to inspect values.";
   }
 });

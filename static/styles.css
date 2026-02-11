@@ -73,6 +73,12 @@ button {
   font-size: 0.93rem;
 }
 
+.cursor-values {
+  margin-bottom: 0.7rem;
+  font-size: 0.92rem;
+  color: #315247;
+}
+
 .error {
   color: #8b1e1e;
   white-space: pre-wrap;
