@@ -3,6 +3,9 @@ const chart = document.getElementById("chart");
 const errorEl = document.getElementById("error");
 const metaEl = document.getElementById("meta");
 const cursorValuesEl = document.getElementById("cursorValues");
+const exportBtn = document.getElementById("exportBtn");
+
+let lastPlotData = null;
 
 function clearChart() {
   while (chart.firstChild) chart.removeChild(chart.firstChild);
@@ -166,6 +169,8 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
   errorEl.textContent = "";
   metaEl.textContent = "";
+  exportBtn.disabled = true;
+  lastPlotData = null;
 
   const file = document.getElementById("fileInput").files[0];
   const minWl = document.getElementById("minWl").value;
@@ -193,10 +198,48 @@ form.addEventListener("submit", async (event) => {
     }
 
     drawChart(payload.time_ns, payload.avg_intensity);
+    lastPlotData = {
+      time_ns: payload.time_ns,
+      avg_intensity: payload.avg_intensity,
+    };
+    exportBtn.disabled = false;
     metaEl.textContent = `Range: ${payload.range_nm[0]}-${payload.range_nm[1]} nm | Selected wavelengths: ${payload.selected_wavelength_count}`;
   } catch (err) {
     errorEl.textContent = String(err);
     clearChart();
     cursorValuesEl.textContent = "Cursor: move over the chart to inspect values.";
+  }
+});
+
+exportBtn.addEventListener("click", async () => {
+  errorEl.textContent = "";
+  if (!lastPlotData) {
+    errorEl.textContent = "Please analyze data first.";
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/export-plot-data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(lastPlotData),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json();
+      throw new Error(payload.detail || "Export failed");
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "plot_data.xlsx";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    errorEl.textContent = String(err);
   }
 });

@@ -58,6 +58,13 @@ button {
   background: var(--accent);
   color: #fff;
   cursor: pointer;
+  margin-right: 0.45rem;
+  margin-top: 0.35rem;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 #chart {

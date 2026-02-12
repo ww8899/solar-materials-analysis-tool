@@ -5,11 +5,19 @@ from typing import List
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from openpyxl import Workbook
 from openpyxl import load_workbook
+from pydantic import BaseModel
 
 app = FastAPI(title="Wavelength Range Analyzer", version="0.1.0")
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+class PlotDataExportRequest(BaseModel):
+    time_ns: List[float]
+    avg_intensity: List[float]
 
 
 @app.get("/")
@@ -161,3 +169,30 @@ async def analyze_range(
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.post("/api/export-plot-data")
+def export_plot_data(payload: PlotDataExportRequest):
+    if not payload.time_ns or not payload.avg_intensity:
+        raise HTTPException(status_code=400, detail="time_ns and avg_intensity must not be empty")
+    if len(payload.time_ns) != len(payload.avg_intensity):
+        raise HTTPException(status_code=400, detail="time_ns and avg_intensity length mismatch")
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "plot_data"
+    ws.append(["time_ns", "avg_intensity"])
+
+    for t, y in zip(payload.time_ns, payload.avg_intensity):
+        ws.append([float(t), float(y)])
+
+    stream = io.BytesIO()
+    wb.save(stream)
+    stream.seek(0)
+
+    headers = {"Content-Disposition": 'attachment; filename="plot_data.xlsx"'}
+    return StreamingResponse(
+        stream,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers,
+    )
