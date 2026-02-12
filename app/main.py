@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import io
+import math
 from typing import List
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
+import numpy as np
 from openpyxl import Workbook
 from openpyxl import load_workbook
 from pydantic import BaseModel
@@ -126,6 +128,91 @@ def _parse_uploaded_matrix(upload: UploadFile, raw: bytes) -> tuple[List[float],
     raise ValueError("Only .xlsx and .csv are supported")
 
 
+def _parse_xy_csv_bytes(raw: bytes) -> tuple[List[float], List[float]]:
+    text = raw.decode("utf-8", errors="ignore").strip()
+    lines = [line for line in text.splitlines() if line.strip()]
+    xs: List[float] = []
+    ys: List[float] = []
+
+    for line in lines:
+        cells = [c.strip() for c in line.split(",")]
+        if len(cells) < 2:
+            continue
+        try:
+            x_val = float(cells[0])
+            y_val = float(cells[1])
+        except ValueError:
+            continue
+        xs.append(x_val)
+        ys.append(y_val)
+
+    if len(xs) < 2:
+        raise ValueError("Need at least two numeric data rows in first two CSV columns")
+    return xs, ys
+
+
+def _parse_xy_xlsx_bytes(raw: bytes) -> tuple[List[float], List[float]]:
+    wb = load_workbook(io.BytesIO(raw), data_only=True)
+    ws = wb.active
+    xs: List[float] = []
+    ys: List[float] = []
+
+    for row in range(1, ws.max_row + 1):
+        x_cell = ws.cell(row=row, column=1).value
+        y_cell = ws.cell(row=row, column=2).value
+        try:
+            x_val = float(x_cell)
+            y_val = float(y_cell)
+        except (TypeError, ValueError):
+            continue
+        xs.append(x_val)
+        ys.append(y_val)
+
+    if len(xs) < 2:
+        raise ValueError("Need at least two numeric data rows in first two Excel columns")
+    return xs, ys
+
+
+def _parse_uploaded_xy(upload: UploadFile, raw: bytes) -> tuple[List[float], List[float]]:
+    name = (upload.filename or "").lower()
+    if name.endswith(".xlsx"):
+        return _parse_xy_xlsx_bytes(raw)
+    if name.endswith(".csv"):
+        return _parse_xy_csv_bytes(raw)
+    raise ValueError("Only .xlsx and .csv are supported")
+
+
+def _fit_line_ax(xs: np.ndarray, ys: np.ndarray) -> tuple[dict, np.ndarray]:
+    denom = float(np.sum(xs**2))
+    if denom == 0:
+        raise ValueError("Cannot fit y=ax when all x are zero")
+    a = float(np.sum(xs * ys) / denom)
+    y_fit = a * xs
+    return {"a": a}, y_fit
+
+
+def _fit_quadratic(xs: np.ndarray, ys: np.ndarray) -> tuple[dict, np.ndarray]:
+    coeff = np.polyfit(xs, ys, 2)
+    a, b, c = float(coeff[0]), float(coeff[1]), float(coeff[2])
+    y_fit = a * xs**2 + b * xs + c
+    return {"a": a, "b": b, "c": c}, y_fit
+
+
+def _fit_log_base(xs: np.ndarray, ys: np.ndarray) -> tuple[dict, np.ndarray]:
+    if np.any(xs <= 0):
+        raise ValueError("All x must be > 0 for y=log_n(x)")
+    lx = np.log(xs)
+    denom = float(np.sum(lx**2))
+    if denom == 0:
+        raise ValueError("Cannot fit log model for provided x values")
+    k = float(np.sum(ys * lx) / denom)  # y = k ln(x), where k = 1/ln(n)
+    if k == 0:
+        raise ValueError("Cannot infer base n from data (k=0)")
+    n = float(math.exp(1.0 / k))
+    y_fit = np.log(xs) / np.log(n)
+    return {"n": n}, y_fit
+
+
 @app.post("/api/analyze-range")
 async def analyze_range(
     file: UploadFile = File(...),
@@ -164,6 +251,58 @@ async def analyze_range(
         "time_ns": times,
         "avg_intensity": avg_intensity,
     }
+
+
+@app.post("/api/curve-fit")
+async def curve_fit(
+    file: UploadFile = File(...),
+    function_type: str = Form(...),
+):
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+
+    try:
+        x_vals, y_vals = _parse_uploaded_xy(file, raw)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    xs = np.asarray(x_vals, dtype=float)
+    ys = np.asarray(y_vals, dtype=float)
+
+    try:
+        if function_type == "linear_ax":
+            params, y_fit = _fit_line_ax(xs, ys)
+        elif function_type == "quadratic":
+            params, y_fit = _fit_quadratic(xs, ys)
+        elif function_type == "log_n_x":
+            params, y_fit = _fit_log_base(xs, ys)
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported function type")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return {
+        "function_type": function_type,
+        "x_data": x_vals,
+        "y_data": y_vals,
+        "y_fit": y_fit.tolist(),
+        "parameters": params,
+    }
+
+
+@app.post("/api/curve-data")
+async def curve_data(file: UploadFile = File(...)):
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+
+    try:
+        x_vals, y_vals = _parse_uploaded_xy(file, raw)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return {"x_data": x_vals, "y_data": y_vals}
 
 
 @app.get("/health")

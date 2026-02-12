@@ -15,6 +15,9 @@
         <button class="tool-tab active" type="button" role="tab" aria-selected="true" data-tool-tab="wavelength-rage">
           Wavelength Rage Analyzer
         </button>
+        <button class="tool-tab" type="button" role="tab" aria-selected="false" data-tool-tab="curve-fitting">
+          Curve Fitting
+        </button>
       </div>
 
       <section class="tool-panel active" data-tool-panel="wavelength-rage">
@@ -51,6 +54,37 @@
       </section>
 
       <pre id="error" class="error"></pre>
+      </section>
+
+      <section class="tool-panel" data-tool-panel="curve-fitting">
+        <p class="tool-description">
+          Upload 2-column data (x, y), choose a function, fit it, and compare raw data with fitted curve.
+        </p>
+        <form id="curveFitForm" class="panel">
+          <label>
+            Data File (.xlsx or .csv)
+            <input id="curveFileInput" name="file" type="file" accept=".xlsx,.csv" required />
+          </label>
+
+          <label>
+            Function
+            <select id="functionType" name="function_type">
+              <option value="linear_ax">y = a x</option>
+              <option value="quadratic">y = a x^2 + b x + c</option>
+              <option value="log_n_x">y = log_n(x)</option>
+            </select>
+          </label>
+
+          <button id="fitBtn" type="submit">Fit</button>
+        </form>
+
+        <section class="panel">
+          <h2>Curve Fitting Result</h2>
+          <div id="curveParams" class="meta">Parameters will appear here after fitting.</div>
+          <svg id="curveChart" width="900" height="420" viewBox="0 0 900 420" aria-label="curve fit plot"></svg>
+        </section>
+
+        <pre id="curveError" class="error"></pre>
       </section>
     </main>
 

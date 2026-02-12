@@ -77,6 +77,13 @@ input {
   padding: 0.45rem 0.5rem;
 }
 
+select {
+  display: block;
+  margin-top: 0.25rem;
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+}
+
 .row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -100,6 +107,14 @@ button:disabled {
 }
 
 #chart {
+  width: 100%;
+  height: auto;
+  border: 1px solid #e1ebe6;
+  border-radius: 8px;
+  background: #fcfffd;
+}
+
+#curveChart {
   width: 100%;
   height: auto;
   border: 1px solid #e1ebe6;
