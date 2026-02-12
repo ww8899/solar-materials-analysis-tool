@@ -11,7 +11,7 @@ from openpyxl import Workbook
 from openpyxl import load_workbook
 from pydantic import BaseModel
 
-app = FastAPI(title="Wavelength Range Analyzer", version="0.1.0")
+app = FastAPI(title="Solar Materials Analysis Tool", version="0.1.0")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 

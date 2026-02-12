@@ -3,14 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Wavelength Range Analyzer</title>
+    <title>Solar Materials Analysis Tool</title>
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
     <main class="container">
-      <h1>Wavelength Range Analyzer</h1>
-      <p>Upload an Excel/CSV matrix and plot average intensity vs time for a wavelength range.</p>
+      <h1>Solar Materials Analysis Tool</h1>
+      <p>Data Analysis Tools for Solar Materials</p>
 
+      <div class="tool-tabs" role="tablist" aria-label="Tools">
+        <button class="tool-tab active" type="button" role="tab" aria-selected="true" data-tool-tab="wavelength-rage">
+          Wavelength Rage Analyzer
+        </button>
+      </div>
+
+      <section class="tool-panel active" data-tool-panel="wavelength-rage">
+      <p id="toolDescription" class="tool-description">
+        Upload an Excel/CSV matrix and plot average intensity vs time for a wavelength range.
+      </p>
       <form id="analyzeForm" class="panel">
         <label>
           Data File (.xlsx or .csv)
@@ -41,6 +51,7 @@
       </section>
 
       <pre id="error" class="error"></pre>
+      </section>
     </main>
 
     <script src="/static/app.js"></script>

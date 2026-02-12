@@ -24,6 +24,38 @@ body {
   padding: 0 1rem;
 }
 
+.tool-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0 0.2rem;
+}
+
+.tool-tab {
+  background: #dbe8e1;
+  color: #1f3f34;
+  border: 1px solid #bfd5cb;
+}
+
+.tool-tab.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.tool-panel {
+  display: none;
+}
+
+.tool-panel.active {
+  display: block;
+}
+
+.tool-description {
+  margin: 0.5rem 0 0.8rem;
+  color: #2a4b40;
+  font-size: 0.95rem;
+}
+
 .panel {
   background: var(--card);
   border: 1px solid #cfded7;

@@ -4,8 +4,43 @@ const errorEl = document.getElementById("error");
 const metaEl = document.getElementById("meta");
 const cursorValuesEl = document.getElementById("cursorValues");
 const exportBtn = document.getElementById("exportBtn");
+const toolTabs = Array.from(document.querySelectorAll("[data-tool-tab]"));
+const toolPanels = Array.from(document.querySelectorAll("[data-tool-panel]"));
+const toolDescriptionEl = document.getElementById("toolDescription");
 
 let lastPlotData = null;
+
+function activateTool(toolId) {
+  toolTabs.forEach((tab) => {
+    const isActive = tab.dataset.toolTab === toolId;
+    tab.classList.toggle("active", isActive);
+    tab.setAttribute("aria-selected", String(isActive));
+  });
+
+  toolPanels.forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.toolPanel === toolId);
+  });
+
+  if (toolDescriptionEl && toolId === "wavelength-rage") {
+    toolDescriptionEl.textContent =
+      "Upload an Excel/CSV matrix and plot average intensity vs time for a wavelength range.";
+  }
+}
+
+toolTabs.forEach((tab) => {
+  tab.addEventListener("click", () => {
+    const toolId = tab.dataset.toolTab;
+    activateTool(toolId);
+    const panel = toolPanels.find((p) => p.dataset.toolPanel === toolId);
+    if (panel) {
+      panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+});
+
+if (toolTabs.length) {
+  activateTool(toolTabs[0].dataset.toolTab);
+}
 
 function clearChart() {
   while (chart.firstChild) chart.removeChild(chart.firstChild);
