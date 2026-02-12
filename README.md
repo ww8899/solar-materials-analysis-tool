@@ -1,24 +1,60 @@
-# Wavelength Range Analyzer
+# Solar Materials Analysis Tool
 
-Upload a 2D matrix file (`.xlsx` or `.csv`) where:
-- Row 1 = wavelength columns (for example `900 ... 300`)
-- Rightmost column = time (`ns`)
-- Interior cells = intensity
+This project provides two browser tools:
 
-The app computes average intensity in a wavelength range and plots:
-- x-axis: time (ns)
-- y-axis: average intensity
+1. `Wavelength Rage Analyzer`
+2. `Curve Fitting`
 
-## Project Files
+## Tools
 
-- Backend/API: `app/main.py`
-- UI: `static/index.html`, `static/app.js`, `static/styles.css`
-- Docker runtime: `Dockerfile.ui`
-- Example input file: `synthetic_trpl_2d.xlsx`
+### 1. Wavelength Rage Analyzer
 
-## Quick Start (Recommended: Docker)
+Input file format (`.xlsx` or `.csv`):
+- Row 1: wavelength columns (for example `900 ... 300`)
+- Rightmost column: time (`ns`)
+- Middle cells: intensity
 
-Run from repo root:
+What it does:
+- User selects wavelength range
+- Computes average intensity vs time
+- Plots:
+  - x-axis: time (`ns`)
+  - y-axis: average intensity
+- Supports exporting plotted data to Excel
+
+### 2. Curve Fitting
+
+Input file format (`.xlsx` or `.csv`):
+- Two numeric columns
+- Column 1: `x`
+- Column 2: `y`
+
+Workflow:
+- On file upload, raw data is plotted immediately (black)
+- User selects function and clicks `Fit`
+- Fitted curve is added (dotted red)
+- Fitted parameters are shown (only relevant parameters)
+
+Supported fit functions:
+- `y = a x`
+- `y = a x + b`
+- `y = a x^2 + b x + c`
+- `y = a x^3 + b x^2 + c x + d`
+- `y = log_n(x)`
+- `y = a ln(x) + b`
+- `y = a exp(bx)`
+- `y = a x^b`
+- `y = a/x + b`
+
+## Sample Data
+
+Sample files are in `sample_data/`:
+- `sample_data/synthetic_trpl_2d.xlsx` (for Wavelength Rage Analyzer)
+- `sample_data/linear_data_example.xlsx` (for Curve Fitting)
+
+## Quick Start (Docker, Recommended)
+
+From repo root:
 
 ```bash
 docker rm -f wavelength-ui 2>/dev/null || true
@@ -26,43 +62,34 @@ docker build -f Dockerfile.ui -t wavelength-ui:latest .
 docker run -d --name wavelength-ui -p 8010:8010 wavelength-ui:latest
 ```
 
-Verify the service is up:
+Health check:
 
 ```bash
 curl http://127.0.0.1:8010/health
-```
-
-Expected response:
-
-```json
-{"status":"ok"}
 ```
 
 Open UI:
 
 - `http://127.0.0.1:8010/`
 
-## Plot Validation (CLI)
+## API Quick Checks
 
-Use the included sample file to verify analysis end-to-end:
+Wavelength analyzer:
 
 ```bash
 curl -X POST "http://127.0.0.1:8010/api/analyze-range" \
-  -F "file=@synthetic_trpl_2d.xlsx" \
+  -F "file=@sample_data/synthetic_trpl_2d.xlsx" \
   -F "min_wavelength_nm=680" \
   -F "max_wavelength_nm=720"
 ```
 
-If this returns JSON with `time_ns` and `avg_intensity`, plotting in the UI will work.
+Curve fitting (`y = a x` example):
 
-## UI Steps
-
-1. Open `http://127.0.0.1:8010/`
-2. Select `synthetic_trpl_2d.xlsx`
-3. Enter wavelength range, for example:
-   - Min: `680`
-   - Max: `720`
-4. Click `Analyze and Plot`
+```bash
+curl -X POST "http://127.0.0.1:8010/api/curve-fit" \
+  -F "file=@sample_data/linear_data_example.xlsx" \
+  -F "function_type=linear_ax"
+```
 
 ## Local Run (Without Docker)
 
@@ -78,16 +105,3 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8010
 
 Then open:
 - `http://127.0.0.1:8010/`
-
-## Troubleshooting
-
-- `TypeError: Failed to fetch` in browser:
-  - Usually means backend is not running or wrong URL/port.
-  - Check `http://127.0.0.1:8010/health`.
-- `This site can’t be reached`:
-  - Start/restart container:
-    - `docker restart wavelength-ui`
-- Port already in use:
-  - Run on another host port:
-    - `docker run -d --name wavelength-ui -p 8011:8010 wavelength-ui:latest`
-  - Then open `http://127.0.0.1:8011/`.
