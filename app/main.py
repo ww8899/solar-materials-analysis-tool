@@ -191,11 +191,25 @@ def _fit_line_ax(xs: np.ndarray, ys: np.ndarray) -> tuple[dict, np.ndarray]:
     return {"a": a}, y_fit
 
 
+def _fit_line_ab(xs: np.ndarray, ys: np.ndarray) -> tuple[dict, np.ndarray]:
+    coeff = np.polyfit(xs, ys, 1)
+    a, b = float(coeff[0]), float(coeff[1])
+    y_fit = a * xs + b
+    return {"a": a, "b": b}, y_fit
+
+
 def _fit_quadratic(xs: np.ndarray, ys: np.ndarray) -> tuple[dict, np.ndarray]:
     coeff = np.polyfit(xs, ys, 2)
     a, b, c = float(coeff[0]), float(coeff[1]), float(coeff[2])
     y_fit = a * xs**2 + b * xs + c
     return {"a": a, "b": b, "c": c}, y_fit
+
+
+def _fit_cubic(xs: np.ndarray, ys: np.ndarray) -> tuple[dict, np.ndarray]:
+    coeff = np.polyfit(xs, ys, 3)
+    a, b, c, d = float(coeff[0]), float(coeff[1]), float(coeff[2]), float(coeff[3])
+    y_fit = a * xs**3 + b * xs**2 + c * xs + d
+    return {"a": a, "b": b, "c": c, "d": d}, y_fit
 
 
 def _fit_log_base(xs: np.ndarray, ys: np.ndarray) -> tuple[dict, np.ndarray]:
@@ -211,6 +225,52 @@ def _fit_log_base(xs: np.ndarray, ys: np.ndarray) -> tuple[dict, np.ndarray]:
     n = float(math.exp(1.0 / k))
     y_fit = np.log(xs) / np.log(n)
     return {"n": n}, y_fit
+
+
+def _fit_log_ab(xs: np.ndarray, ys: np.ndarray) -> tuple[dict, np.ndarray]:
+    if np.any(xs <= 0):
+        raise ValueError("All x must be > 0 for y=a*ln(x)+b")
+    lx = np.log(xs)
+    coeff = np.polyfit(lx, ys, 1)
+    a, b = float(coeff[0]), float(coeff[1])
+    y_fit = a * lx + b
+    return {"a": a, "b": b}, y_fit
+
+
+def _fit_exponential_ab(xs: np.ndarray, ys: np.ndarray) -> tuple[dict, np.ndarray]:
+    # Model: y = a * exp(bx); requires y > 0 for log transform.
+    if np.any(ys <= 0):
+        raise ValueError("All y must be > 0 for y=a*exp(bx)")
+    ly = np.log(ys)
+    coeff = np.polyfit(xs, ly, 1)
+    b, ln_a = float(coeff[0]), float(coeff[1])
+    a = float(math.exp(ln_a))
+    y_fit = a * np.exp(b * xs)
+    return {"a": a, "b": b}, y_fit
+
+
+def _fit_power_law(xs: np.ndarray, ys: np.ndarray) -> tuple[dict, np.ndarray]:
+    # Model: y = a * x^b; requires x > 0 and y > 0.
+    if np.any(xs <= 0) or np.any(ys <= 0):
+        raise ValueError("All x and y must be > 0 for y=a*x^b")
+    lx = np.log(xs)
+    ly = np.log(ys)
+    coeff = np.polyfit(lx, ly, 1)
+    b, ln_a = float(coeff[0]), float(coeff[1])
+    a = float(math.exp(ln_a))
+    y_fit = a * np.power(xs, b)
+    return {"a": a, "b": b}, y_fit
+
+
+def _fit_reciprocal_ab(xs: np.ndarray, ys: np.ndarray) -> tuple[dict, np.ndarray]:
+    # Model: y = a/x + b; requires x != 0.
+    if np.any(xs == 0):
+        raise ValueError("x cannot be 0 for y=a/x+b")
+    inv_x = 1.0 / xs
+    coeff = np.polyfit(inv_x, ys, 1)
+    a, b = float(coeff[0]), float(coeff[1])
+    y_fit = a / xs + b
+    return {"a": a, "b": b}, y_fit
 
 
 @app.post("/api/analyze-range")
@@ -273,10 +333,22 @@ async def curve_fit(
     try:
         if function_type == "linear_ax":
             params, y_fit = _fit_line_ax(xs, ys)
+        elif function_type == "linear_ab":
+            params, y_fit = _fit_line_ab(xs, ys)
         elif function_type == "quadratic":
             params, y_fit = _fit_quadratic(xs, ys)
+        elif function_type == "cubic":
+            params, y_fit = _fit_cubic(xs, ys)
         elif function_type == "log_n_x":
             params, y_fit = _fit_log_base(xs, ys)
+        elif function_type == "log_ab":
+            params, y_fit = _fit_log_ab(xs, ys)
+        elif function_type == "exp_ab":
+            params, y_fit = _fit_exponential_ab(xs, ys)
+        elif function_type == "power_law":
+            params, y_fit = _fit_power_law(xs, ys)
+        elif function_type == "reciprocal_ab":
+            params, y_fit = _fit_reciprocal_ab(xs, ys)
         else:
             raise HTTPException(status_code=400, detail="Unsupported function type")
     except ValueError as exc:
