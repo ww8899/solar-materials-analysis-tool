@@ -10,6 +10,7 @@ const functionTypeSelect = document.getElementById("functionType");
 const curveChart = document.getElementById("curveChart");
 const curveParamsEl = document.getElementById("curveParams");
 const curveErrorEl = document.getElementById("curveError");
+const curveCursorValuesEl = document.getElementById("curveCursorValues");
 const toolTabs = Array.from(document.querySelectorAll("[data-tool-tab]"));
 const toolPanels = Array.from(document.querySelectorAll("[data-tool-panel]"));
 const toolDescriptionEl = document.getElementById("toolDescription");
@@ -209,6 +210,8 @@ function drawChart(times, intensities) {
 
 function clearCurveChart() {
   while (curveChart.firstChild) curveChart.removeChild(curveChart.firstChild);
+  curveChart.onmousemove = null;
+  curveChart.onmouseleave = null;
 }
 
 function drawCurveFitChart(xData, yData, yFit = null) {
@@ -276,6 +279,90 @@ function drawCurveFitChart(xData, yData, yFit = null) {
     fitLine.setAttribute("stroke-dasharray", "6 4");
     curveChart.appendChild(fitLine);
   }
+
+  const hoverVLine = line(pad.l, pad.t, pad.l, height - pad.b, "#7ca79a", 1);
+  hoverVLine.setAttribute("stroke-dasharray", "4 4");
+  hoverVLine.style.visibility = "hidden";
+  curveChart.appendChild(hoverVLine);
+
+  const hoverHLine = line(pad.l, height - pad.b, width - pad.r, height - pad.b, "#7ca79a", 1);
+  hoverHLine.setAttribute("stroke-dasharray", "4 4");
+  hoverHLine.style.visibility = "hidden";
+  curveChart.appendChild(hoverHLine);
+
+  const hoverPoint = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  hoverPoint.setAttribute("r", "4.2");
+  hoverPoint.setAttribute("fill", "#000000");
+  hoverPoint.setAttribute("stroke", "#ffffff");
+  hoverPoint.setAttribute("stroke-width", "1.2");
+  hoverPoint.style.visibility = "hidden";
+  curveChart.appendChild(hoverPoint);
+
+  function nearestIndexFromX(svgX) {
+    const clampedX = Math.max(pad.l, Math.min(width - pad.r, svgX));
+    let bestIndex = 0;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (let i = 0; i < points.length; i++) {
+      const px = xScale(points[i].x);
+      const distance = Math.abs(px - clampedX);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = i;
+      }
+    }
+    return bestIndex;
+  }
+
+  curveChart.onmousemove = (event) => {
+    const rect = curveChart.getBoundingClientRect();
+    const scaleX = width / rect.width;
+    const scaleY = height / rect.height;
+    const svgX = (event.clientX - rect.left) * scaleX;
+    const svgY = (event.clientY - rect.top) * scaleY;
+
+    if (svgX < pad.l || svgX > width - pad.r || svgY < pad.t || svgY > height - pad.b) {
+      hoverVLine.style.visibility = "hidden";
+      hoverHLine.style.visibility = "hidden";
+      hoverPoint.style.visibility = "hidden";
+      if (curveCursorValuesEl) {
+        curveCursorValuesEl.textContent = "Cursor: move over the chart to inspect values.";
+      }
+      return;
+    }
+
+    const idx = nearestIndexFromX(svgX);
+    const point = points[idx];
+    const px = xScale(point.x);
+    const py = yScale(point.y);
+
+    hoverVLine.setAttribute("x1", px);
+    hoverVLine.setAttribute("x2", px);
+    hoverHLine.setAttribute("y1", py);
+    hoverHLine.setAttribute("y2", py);
+    hoverPoint.setAttribute("cx", px);
+    hoverPoint.setAttribute("cy", py);
+
+    hoverVLine.style.visibility = "visible";
+    hoverHLine.style.visibility = "visible";
+    hoverPoint.style.visibility = "visible";
+
+    if (curveCursorValuesEl) {
+      if (point.yFit != null && Number.isFinite(point.yFit)) {
+        curveCursorValuesEl.textContent = `Cursor: x = ${point.x.toFixed(4)}, y = ${point.y.toFixed(4)}, y_fit = ${point.yFit.toFixed(4)}`;
+      } else {
+        curveCursorValuesEl.textContent = `Cursor: x = ${point.x.toFixed(4)}, y = ${point.y.toFixed(4)}`;
+      }
+    }
+  };
+
+  curveChart.onmouseleave = () => {
+    hoverVLine.style.visibility = "hidden";
+    hoverHLine.style.visibility = "hidden";
+    hoverPoint.style.visibility = "hidden";
+    if (curveCursorValuesEl) {
+      curveCursorValuesEl.textContent = "Cursor: move over the chart to inspect values.";
+    }
+  };
 }
 
 form.addEventListener("submit", async (event) => {

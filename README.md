@@ -57,9 +57,9 @@ Sample files are in `sample_data/`:
 From repo root:
 
 ```bash
-docker rm -f wavelength-ui 2>/dev/null || true
-docker build -f Dockerfile.ui -t wavelength-ui:latest .
-docker run -d --name wavelength-ui -p 8010:8010 wavelength-ui:latest
+docker rm -f solar-materials-analysis-tool 2>/dev/null || true
+docker build -f Dockerfile.ui -t solar-materials-analysis-tool:latest .
+docker run -d --name solar-materials-analysis-tool -p 8010:8010 solar-materials-analysis-tool:latest
 ```
 
 Health check:
